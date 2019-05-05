@@ -68,6 +68,7 @@ def inputs():
     
     dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
     dataset = dataset.map(map_func=parse, num_parallel_calls=NUM_PARALLEL_MAP_CALLS)
+    dataset = dataset.batch(batch_size=9)
     return dataset
 
 def inputs_pipeline():

@@ -55,7 +55,7 @@ class UNetBuilder:
         x = self.conv2d_layer(inputs, num_filters=num_filters)
         x = self.conv2d_layer(x, num_filters=num_filters)
         x = keras.layers.BatchNormalization()(x) if (self.batch_normalization) else x
-        return keras.layers.Dropout(self.dropout_rate)(x)
+        return keras.layers.Dropout(rate=self.dropout_rate)(x)
 
     def upsampling_and_concatenation_layer(self, inputs, earlier_inputs, num_filters):
         """
@@ -76,13 +76,13 @@ class UNetBuilder:
         x = self.conv2d_layer(x, num_filters=num_filters)
         x = self.conv2d_layer(x, num_filters=num_filters)
         x = keras.layers.BatchNormalization()(x) if (self.batch_normalization) else x
-        return keras.layers.Dropout(self.dropout_rate)(x)
+        return keras.layers.Dropout(rate=self.dropout_rate)(x)
 
     def build_model_core(self):
         """
         builds the core of the u-net model with the downsampling and upsampling stages
         """
-        self.inputs = keras.Input(shape=(None, None, 1), name='bw-img')
+        self.inputs = keras.Input(shape=(256, 256, 1), name='bw-img')
         num_filters = self.initial_num_filters
         x = self.inputs
         
@@ -96,7 +96,7 @@ class UNetBuilder:
                 'num_filters': num_filters
             }
             num_filters *= 2
-        x = keras.layers.Dropout(self.dropout_rate)(x)
+        x = keras.layers.Dropout(rate=self.dropout_rate)(x)
 
         # build the colvolutional block at the lowest stage
         x = self.build_lowest_convolution_block(x, num_filters)

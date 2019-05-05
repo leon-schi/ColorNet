@@ -1,6 +1,8 @@
 import unittest
 import numpy as np
 
+import tensorflow as tf
+
 from tensorflow import keras
 
 from model.model import ColorNetBuilder
@@ -13,6 +15,7 @@ class ModelTest(unittest.TestCase):
 
     def testSummary(self):
         print(self.model.summary())
+        keras.utils.plot_model(self.model, 'model.png', show_shapes=True)
 
     def testCompilation(self):
         self.model.compile(optimizer=keras.optimizers.Adam(0.001),
