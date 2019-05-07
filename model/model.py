@@ -3,6 +3,7 @@ import tensorflow as tf
 tf.keras.backend.clear_session()
 
 from tensorflow import keras
+from.color_mapping import ColorEncoder
 
 class UNetBuilder:
     def __init__(self, output_dimensions, 
@@ -129,5 +130,20 @@ class UNetBuilder:
         return self.instanciate_model()
 
 class ColorNetBuilder(UNetBuilder):
+    def __init__(self, output_dimensions=ColorEncoder.vec_size,
+                    initial_num_filters=64, 
+                    num_poolings=4, 
+                    kernel_size=3,
+                    dropout_rate=0.4,
+                    batch_normalization=True):
+        super(ColorNetBuilder, self).__init__(
+            output_dimensions=output_dimensions,
+            initial_num_filters=initial_num_filters, 
+            num_poolings=num_poolings, 
+            kernel_size=kernel_size,
+            dropout_rate=dropout_rate,
+            batch_normalization=batch_normalization
+        )
+
     def add_output_layer(self):
         self.outputs = self.conv2d_layer(self.up[1]['output'], num_filters=self.output_dimensions, activation='softmax')

@@ -1,7 +1,9 @@
 import os
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
+from .config import CONFIG
 from .input import inputs
 from .model import ColorNetBuilder
 from .color_mapping import ColorEncoder
@@ -12,10 +14,20 @@ class Model:
     def __init__(self):
         self.session = None
         self.iterator = None
+        self.load_config()
+        self.build_model()
 
-        builder = ColorNetBuilder(ColorEncoder.vec_size,
-            initial_num_filters=16, 
-            num_poolings=2,
+    def load_config(self):
+        training_config = CONFIG['training_config']
+        self.num_epochs = training_config['num_epochs']
+        self.learning_rate = training_config['learning_rate']
+        self.learning_rate_decay = training_config['learning_rate_decay']
+
+    def build_model(self):
+        model_architecture = CONFIG['model_architecture']
+        builder = ColorNetBuilder(
+            initial_num_filters=model_architecture['num_filters'],
+            num_poolings=model_architecture['num_poolings'],
         )
         self.model = builder.build_model()
 
@@ -25,7 +37,9 @@ class Model:
         except OSError:
             pass
 
-        self.model.compile(optimizer=keras.optimizers.Adam(0.001),
+        self.model.compile(optimizer=keras.optimizers.Adam(
+            lr=self.learning_rate, 
+            decay=self.learning_rate_decay),
               loss='categorical_crossentropy',
               metrics=['categorical_crossentropy'])
 
@@ -42,14 +56,16 @@ class Model:
     def train(self):
         checkpoint_callback = keras.callbacks.ModelCheckpoint(self.checkpoint_dir, 
                                                 save_weights_only=True,
-                                                verbose=1)
-
-        iterator = inputs().make_one_shot_iterator()
-
-        sess = self.get_session() 
+                                                verbose=0)
+        sess = self.get_session()
         bw, labels = sess.run(self.get_iterator().get_next())
-        self.model.fit(x=bw, y=labels, epochs=2, callbacks=[checkpoint_callback])
+        self.model.fit(x=bw, y=labels, 
+                epochs=self.num_epochs,
+                callbacks=[checkpoint_callback])
 
-def train_model():
-    model = Model()
-    model.train()
+    def predict(self, images):
+        if len(images.shape) < 4:
+            images = np.array([images])
+
+        labels = self.model.predict(images)
+        ColorEncoder().decode_and_show(labels[0], images[0])
