@@ -3,13 +3,13 @@ import numpy as np
 import tensorflow as tf
 
 from .color_mapping import ColorEncoder
+from .config import CONFIG
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-BATCH_SIZE = 64
+input_config = CONFIG['input_config']
 PREFETCH_BUFFER_SIZE = 64
 SHUFFLE_BUFFER_SIZE = 128
-NUM_PARALLEL_MAP_CALLS = 4
 
 def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -67,8 +67,8 @@ def inputs():
     files = tf.data.Dataset.list_files(os.path.join(dir_path, '../training-data/*'))
     
     dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
-    dataset = dataset.map(map_func=parse, num_parallel_calls=NUM_PARALLEL_MAP_CALLS)
-    dataset = dataset.batch(batch_size=BATCH_SIZE)
+    dataset = dataset.map(map_func=parse, num_parallel_calls=input_config['num_parallel_map_calls'])
+    dataset = dataset.batch(batch_size=input_config['batch_size'])
     dataset = dataset.repeat()
     return dataset
 
@@ -77,7 +77,7 @@ def inputs_pipeline():
     
     dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
     dataset = dataset.shuffle(buffer_size=SHUFFLE_BUFFER_SIZE)
-    dataset = dataset.map(map_func=parse, num_parallel_calls=NUM_PARALLEL_MAP_CALLS)
-    dataset = dataset.batch(batch_size=BATCH_SIZE)
+    dataset = dataset.map(map_func=parse, num_parallel_calls=input_config['num_parallel_map_calls'])
+    dataset = dataset.batch(batch_size=input_config['batch_size'])
     dataset = dataset.prefetch(buffer_size=PREFETCH_BUFFER_SIZE)
     return dataset

@@ -16,7 +16,7 @@ def read_int64(example, feature):
 tf.enable_eager_execution()
 
 class RecordWriter:
-    PATH = 'training-data'
+    PATH = 'training-data/small'
     BATCH_SIZE = 256
 
     def current_filename(self):
