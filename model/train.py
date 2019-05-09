@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import tensorflow as tf
+from datetime import datetime
 from tensorflow import keras
 
 from .config import CONFIG
@@ -10,6 +11,7 @@ from .color_mapping import ColorEncoder
 
 class Model:
     checkpoint_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints/cp.h5')
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     def __init__(self):
         self.session = None
@@ -57,11 +59,13 @@ class Model:
         checkpoint_callback = keras.callbacks.ModelCheckpoint(self.checkpoint_dir, 
                                                 save_weights_only=True,
                                                 verbose=0)
+        tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.log_dir)
+
         sess = self.get_session()
         bw, labels = sess.run(self.get_iterator().get_next())
         self.model.fit(x=bw, y=labels, 
                 epochs=self.num_epochs,
-                callbacks=[checkpoint_callback])
+                callbacks=[checkpoint_callback, tensorboard_callback])
 
     def predict(self, images):
         if len(images.shape) < 4:
