@@ -10,7 +10,7 @@ class UNetBuilder:
                     initial_num_filters=64, 
                     num_poolings=4, 
                     kernel_size=3,
-                    dropout_rate=0.4,
+                    dropout_rate=0.2,
                     batch_normalization=True):
         self.output_dimensions = output_dimensions
         self.initial_num_filters = initial_num_filters

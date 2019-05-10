@@ -21,6 +21,7 @@ class Model:
 
     def load_config(self):
         training_config = CONFIG['training_config']
+        self.num_iterations = training_config['num_iterations']
         self.num_epochs = training_config['num_epochs']
         self.learning_rate = training_config['learning_rate']
         self.learning_rate_decay = training_config['learning_rate_decay']
@@ -33,17 +34,17 @@ class Model:
         )
         self.model = builder.build_model()
 
-        # restore weights from checkpoint if there is one
-        try:
-            self.model.load_weights(self.checkpoint_dir)
-        except OSError:
-            pass
-
         self.model.compile(optimizer=keras.optimizers.Adam(
             lr=self.learning_rate, 
             decay=self.learning_rate_decay),
               loss='categorical_crossentropy',
               metrics=['categorical_crossentropy'])
+
+        # restore weights from checkpoint if there is one
+        try:
+            self.model.load_weights(self.checkpoint_dir)
+        except OSError:
+            pass
 
     def get_session(self):
         if self.session == None:
@@ -57,19 +58,22 @@ class Model:
 
     def train(self):
         checkpoint_callback = keras.callbacks.ModelCheckpoint(self.checkpoint_dir, 
-                                                save_weights_only=True,
+                                                save_weights_only=False,
                                                 verbose=0)
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.log_dir)
 
         sess = self.get_session()
-        bw, labels = sess.run(self.get_iterator().get_next())
-        self.model.fit(x=bw, y=labels, 
-                epochs=self.num_epochs,
-                callbacks=[checkpoint_callback, tensorboard_callback])
+        next_element = self.get_iterator().get_next()
+        for _ in range(self.num_iterations):
+            bw, labels = sess.run(next_element)
+            self.model.fit(x=bw, y=labels, 
+                    epochs=self.num_epochs,
+                    callbacks=[checkpoint_callback, tensorboard_callback])
 
-    def predict(self, images):
-        if len(images.shape) < 4:
-            images = np.array([images])
+    def predict(self):
+        sess = self.get_session()
+        bws, _ = sess.run(self.get_iterator().get_next())
 
-        labels = self.model.predict(images)
-        ColorEncoder().decode_and_show(labels[0], images[0])
+        labels = self.model.predict(bws)
+        for bw, label in zip(bws, labels):
+            ColorEncoder().decode_and_show(label, bw)

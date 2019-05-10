@@ -64,7 +64,7 @@ def parse(example):
     return Serializer.parse_example(example)
 
 def inputs():
-    files = tf.data.Dataset.list_files(os.path.join(dir_path, '../training-data/*'))
+    files = tf.data.Dataset.list_files(os.path.join(dir_path, '../training-data/small/*'))
     
     dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
     dataset = dataset.map(map_func=parse, num_parallel_calls=input_config['num_parallel_map_calls'])
