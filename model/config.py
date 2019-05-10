@@ -8,8 +8,8 @@ CONFIG = {
         'checkpoint-dir': 'model/checkpoints',
         'num_epochs': 40,
         'num_iterations': 4000,
-        'learning_rate': 0.001,
-        'learning_rate_decay': 0.0001
+        'learning_rate': 0.0001,
+        'learning_rate_decay': 0.001
     },
     'input_config': {
         'batch_size': 4,
