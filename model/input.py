@@ -7,10 +7,6 @@ from .config import CONFIG
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-input_config = CONFIG['input_config']
-PREFETCH_BUFFER_SIZE = 64
-SHUFFLE_BUFFER_SIZE = 128
-
 def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
@@ -63,27 +59,35 @@ class Serializer:
 def parse(example):
     return Serializer.parse_example(example)
 
-def test_inputs():
-    dataset = tf.data.TFRecordDataset(os.path.join(dir_path, '../training-data/records-1'))
-    dataset = dataset.map(map_func=parse)
-    dataset = dataset.batch(batch_size=1)
-    return dataset
+class InputProvider:
+    config = CONFIG['input_config']
+    PREFETCH_BUFFER_SIZE = 64
+    SHUFFLE_BUFFER_SIZE = 128
 
-def inputs():
-    files = tf.data.Dataset.list_files(os.path.join(dir_path, '../training-data/*'))
-    
-    dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
-    dataset = dataset.map(map_func=parse, num_parallel_calls=input_config['num_parallel_map_calls'])
-    dataset = dataset.batch(batch_size=input_config['batch_size'])
-    dataset = dataset.repeat()
-    return dataset
+    @classmethod
+    def test_inputs(cls):
+        dataset = tf.data.TFRecordDataset(os.path.join(dir_path, cls.config['training_data_dir'], 'records-1'))
+        dataset = dataset.map(map_func=parse)
+        dataset = dataset.batch(batch_size=1)
+        return dataset
 
-def inputs_pipeline():
-    files = tf.data.Dataset.list_files(os.path.join(dir_path, '../training-data/*'))
-    
-    dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
-    dataset = dataset.shuffle(buffer_size=SHUFFLE_BUFFER_SIZE)
-    dataset = dataset.map(map_func=parse, num_parallel_calls=input_config['num_parallel_map_calls'])
-    dataset = dataset.batch(batch_size=input_config['batch_size'])
-    dataset = dataset.prefetch(buffer_size=PREFETCH_BUFFER_SIZE)
-    return dataset
+    @classmethod
+    def inputs(cls):
+        files = tf.data.Dataset.list_files(os.path.join(dir_path, cls.config['training_data_dir'], '*'))
+        
+        dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
+        dataset = dataset.map(map_func=parse, num_parallel_calls=cls.config['num_parallel_map_calls'])
+        dataset = dataset.batch(batch_size=cls.config['batch_size'])
+        dataset = dataset.repeat()
+        return dataset
+
+    @classmethod
+    def inputs_pipeline(cls):
+        files = tf.data.Dataset.list_files(os.path.join(dir_path,  cls.config['training_data_dir'], '*'))
+        
+        dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
+        dataset = dataset.shuffle(buffer_size=cls.SHUFFLE_BUFFER_SIZE)
+        dataset = dataset.map(map_func=parse, num_parallel_calls=cls.config['num_parallel_map_calls'])
+        dataset = dataset.batch(batch_size=cls.config['batch_size'])
+        dataset = dataset.prefetch(buffer_size=cls.PREFETCH_BUFFER_SIZE)
+        return dataset

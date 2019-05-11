@@ -5,7 +5,7 @@ from datetime import datetime
 from tensorflow import keras
 
 from .config import CONFIG
-from .input import inputs, test_inputs
+from .input import InputProvider
 from .model import ColorNetBuilder
 from .color_mapping import ColorEncoder
 
@@ -53,7 +53,7 @@ class Model:
 
     def get_iterator(self):
         if self.iterator == None:
-            self.iterator = inputs().make_one_shot_iterator()
+            self.iterator = InputProvider.inputs().make_one_shot_iterator()
         return self.iterator
 
     def train(self):
@@ -63,28 +63,18 @@ class Model:
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.log_dir)
 
         sess = self.get_session()
-        #next_element = self.get_iterator().get_next()
-        
+        next_element = self.get_iterator().get_next()
 
-        bw, labels = sess.run(test_inputs().make_one_shot_iterator().get_next())
-        self.model.fit(x=bw, y=labels,
-                epochs=self.num_epochs,
-                callbacks=[checkpoint_callback, tensorboard_callback])
-
-        '''
         for _ in range(self.num_iterations):
             bw, labels = sess.run(next_element)
             self.model.fit(x=bw, y=labels, 
                     epochs=self.num_epochs,
                     callbacks=[checkpoint_callback, tensorboard_callback])
-        '''
 
     def predict(self):
         sess = self.get_session()
-        #bws, _ = sess.run(self.get_iterator().get_next())
+        bws, _ = sess.run(self.get_iterator().get_next())
         
-        bws, _ = sess.run(test_inputs().make_one_shot_iterator().get_next())
-
         labels = self.model.predict(bws)
         for bw, label in zip(bws, labels):
             ColorEncoder().decode_and_show(label, bw)
