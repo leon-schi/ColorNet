@@ -10,7 +10,7 @@ from .model import ColorNetBuilder
 from .color_mapping import ColorEncoder
 
 class Model:
-    checkpoint_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints/cp.h5')
+    checkpoint_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints/cp' + datetime.now().strftime("%Y%m%d-%H%M%S") + '.h5')
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     def __init__(self):
@@ -46,6 +46,13 @@ class Model:
         except OSError:
             pass
 
+        self.checkpoint_callback = keras.callbacks.ModelCheckpoint(self.checkpoint_dir, 
+                                                save_weights_only=False,
+                                                verbose=0,
+                                                period=10)
+        self.tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.log_dir,
+                                                update_freq=10)
+
     def get_session(self):
         if self.session == None:
             self.session = tf.Session()
@@ -57,19 +64,14 @@ class Model:
         return self.iterator
 
     def train(self):
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(self.checkpoint_dir, 
-                                                save_weights_only=False,
-                                                verbose=0)
-        tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.log_dir)
-
         sess = self.get_session()
         next_element = self.get_iterator().get_next()
 
         for _ in range(self.num_iterations):
             bw, labels = sess.run(next_element)
-            self.model.fit(x=bw, y=labels, 
+            self.model.fit(x=bw, y=labels,
                     epochs=self.num_epochs,
-                    callbacks=[checkpoint_callback, tensorboard_callback])
+                    callbacks=[self.checkpoint_callback, self.tensorboard_callback])
 
     def predict(self):
         sess = self.get_session()

@@ -5,8 +5,8 @@ CONFIG = {
     },
     'training_config': {
         'checkpoint-dir': 'model/checkpoints',
-        'num_epochs': 500,
-        'num_iterations': 4000,
+        'num_epochs': 400,
+        'num_iterations': 10000,
         'learning_rate': 0.001,
         'learning_rate_decay': 0.0005
     },

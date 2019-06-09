@@ -61,8 +61,8 @@ def parse(example):
 
 class InputProvider:
     config = CONFIG['input_config']
-    PREFETCH_BUFFER_SIZE = 64
-    SHUFFLE_BUFFER_SIZE = 128
+    PREFETCH_BUFFER_SIZE = 32
+    SHUFFLE_BUFFER_SIZE = 32
 
     @classmethod
     def test_inputs(cls):
