@@ -42,6 +42,14 @@ class Model:
         self.iterator = self.inputs.make_one_shot_iterator().get_next()
 
     def compile_model(self):
+        # load the epoch, when training was stopped
+        try:
+            loaded = joblib.load(self.epoch_dir)
+            self.initial_epoch = loaded['epoch']
+            self.learning_rate = loaded['lr']
+        except OSError:
+            self.initial_epoch = 0
+
         self.model.compile(optimizer=keras.optimizers.Adam(
             lr=self.learning_rate, 
             decay=self.learning_rate_decay),
@@ -55,12 +63,6 @@ class Model:
         except OSError:
             pass
 
-        # load the epoch, when training was stopped
-        try:
-            self.initial_epoch = joblib.load(self.epoch_dir)
-        except OSError:
-            self.initial_epoch = 0
-
     def build_callbacks(self):
         checkpoint_callback = keras.callbacks.ModelCheckpoint(self.checkpoint_dir, 
                                                 save_weights_only=False,
@@ -70,7 +72,10 @@ class Model:
         learning_rate_callback = keras.callbacks.ReduceLROnPlateau(monitor='loss' ,factor=0.5, patience=3, min_delta=0.001, verbose=1)
 
         def save_epoch(epoch, logs):
-            joblib.dump(epoch + 1, self.epoch_dir)
+            joblib.dump({
+                    'epoch': epoch + 1,
+                    'lr': keras.backend.eval(self.model.optimizer.lr)
+                }, self.epoch_dir)
             self.initial_epoch = epoch + 1
         save_epoch_callback = keras.callbacks.LambdaCallback(on_epoch_begin=save_epoch)
 
