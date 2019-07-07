@@ -81,8 +81,8 @@ class InputProvider:
         
         dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
         dataset = dataset.map(map_func=self.parse, num_parallel_calls=self.config['num_parallel_map_calls'])
-        dataset = dataset.batch(batch_size=self.config['batch_size'])
         dataset = dataset.repeat()
+        dataset = dataset.batch(batch_size=self.config['batch_size'])
         return dataset
 
     def inputs_pipeline(self):

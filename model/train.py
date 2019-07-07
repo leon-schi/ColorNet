@@ -16,6 +16,7 @@ class Model:
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     def __init__(self):
+        self.sess = None
         self.load_config()
         self.build_model()
         self.compile_model()
@@ -87,9 +88,14 @@ class Model:
                     epochs=self.num_epochs,
                     callbacks=self.callbacks)
 
+    def get_session(self):
+        if self.sess == None:
+            self.sess = tf.Session()
+        return self.sess
+
     def predict(self):
-        with tf.Session() as sess:
-            bws, _ = sess.run(self.iterator)
+        sess = self.get_session()
+        bws, _ = sess.run(self.iterator)
         labels = self.model.predict(bws)
         for bw, label in zip(bws, labels):
             ColorEncoder().decode_and_show(label, bw)
