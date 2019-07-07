@@ -4,3 +4,5 @@ model/__pycache__
 /imagenet-records-all-classes
 /imagenet-urls
 /training-data
+/model/logs
+/model/checkpoints

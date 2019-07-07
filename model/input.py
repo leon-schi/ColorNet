@@ -44,7 +44,7 @@ class Serializer:
         return tf.sparse_tensor_to_dense(sparse)
 
     @classmethod
-    def parse_example(self, example):
+    def parse_example(self, example, input_shape, output_shape):
         feature_description = {
             'bw': tf.FixedLenFeature([], tf.string),
             'color': tf.FixedLenFeature([], tf.string),
@@ -53,41 +53,44 @@ class Serializer:
         parsed = tf.parse_single_example(example, feature_description)
 
         black_white = tf.parse_tensor(parsed['bw'], self.dtype)
-        labels = self.parse_sparse_tensor(parsed['labels'])        
+        black_white.set_shape(input_shape)
+        labels = self.parse_sparse_tensor(parsed['labels'])
+        labels.set_shape(output_shape)
         return black_white, labels
 
-def parse(example):
-    return Serializer.parse_example(example)
-
 class InputProvider:
-    config = CONFIG['input_config']
     PREFETCH_BUFFER_SIZE = 32
     SHUFFLE_BUFFER_SIZE = 32
 
-    @classmethod
-    def test_inputs(cls):
-        dataset = tf.data.TFRecordDataset(os.path.join(dir_path, cls.config['training_data_dir'], 'records-1'))
-        dataset = dataset.map(map_func=parse)
+    def parse(self, example):
+        return Serializer.parse_example(example, self.input_shape, self.output_shape)
+
+    def __init__(self, config, input_shape, output_shape):
+        self.config = config
+        self.input_shape = input_shape
+        self.output_shape = output_shape
+
+    def test_inputs(self):
+        dataset = tf.data.TFRecordDataset(os.path.join(dir_path, self.config['training_data_dir'], 'records-1'))
+        dataset = dataset.map(map_func=self.parse)
         dataset = dataset.batch(batch_size=1)
         return dataset
 
-    @classmethod
-    def inputs(cls):
-        files = tf.data.Dataset.list_files(os.path.join(dir_path, cls.config['training_data_dir'], '*'))
+    def inputs(self):
+        files = tf.data.Dataset.list_files(os.path.join(dir_path, self.config['training_data_dir'], '*'))
         
         dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
-        dataset = dataset.map(map_func=parse, num_parallel_calls=cls.config['num_parallel_map_calls'])
-        dataset = dataset.batch(batch_size=cls.config['batch_size'])
+        dataset = dataset.map(map_func=self.parse, num_parallel_calls=self.config['num_parallel_map_calls'])
+        dataset = dataset.batch(batch_size=self.config['batch_size'])
         dataset = dataset.repeat()
         return dataset
 
-    @classmethod
-    def inputs_pipeline(cls):
-        files = tf.data.Dataset.list_files(os.path.join(dir_path,  cls.config['training_data_dir'], '*'))
+    def inputs_pipeline(self):
+        files = tf.data.Dataset.list_files(os.path.join(dir_path, self.config['training_data_dir'], '*'))
         
         dataset = files.interleave(tf.data.TFRecordDataset, cycle_length=4)
-        dataset = dataset.shuffle(buffer_size=cls.SHUFFLE_BUFFER_SIZE)
-        dataset = dataset.map(map_func=parse, num_parallel_calls=cls.config['num_parallel_map_calls'])
-        dataset = dataset.batch(batch_size=cls.config['batch_size'])
-        dataset = dataset.prefetch(buffer_size=cls.PREFETCH_BUFFER_SIZE)
+        dataset = dataset.shuffle(buffer_size=self.SHUFFLE_BUFFER_SIZE)
+        dataset = dataset.map(map_func=self.parse, num_parallel_calls=self.config['num_parallel_map_calls'])
+        dataset = dataset.batch(batch_size=self.config['batch_size'])
+        dataset = dataset.prefetch(buffer_size=self.PREFETCH_BUFFER_SIZE)
         return dataset

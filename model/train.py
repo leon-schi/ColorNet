@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import tensorflow as tf
+import joblib
 from datetime import datetime
 from tensorflow import keras
 
@@ -10,30 +11,36 @@ from .model import ColorNetBuilder
 from .color_mapping import ColorEncoder
 
 class Model:
-    checkpoint_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints/cp' + datetime.now().strftime("%Y%m%d-%H%M%S") + '.h5')
+    checkpoint_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints/cp.h5')
+    epoch_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints/epoch')
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     def __init__(self):
-        self.session = None
-        self.iterator = None
         self.load_config()
         self.build_model()
+        self.compile_model()
+        self.build_callbacks()
 
     def load_config(self):
         training_config = CONFIG['training_config']
-        self.num_iterations = training_config['num_iterations']
         self.num_epochs = training_config['num_epochs']
+        self.steps_per_epoch = training_config['steps_per_epoch']
         self.learning_rate = training_config['learning_rate']
         self.learning_rate_decay = training_config['learning_rate_decay']
 
     def build_model(self):
         model_architecture = CONFIG['model_architecture']
         builder = ColorNetBuilder(
+            input_shape=model_architecture['input_shape'],
             initial_num_filters=model_architecture['num_filters'],
             num_poolings=model_architecture['num_poolings'],
         )
         self.model = builder.build_model()
+        self.input_provider = InputProvider(CONFIG['input_config'], builder.input_shape, builder.output_shape)
+        self.inputs = self.input_provider.inputs()
+        self.iterator = self.inputs.make_one_shot_iterator().get_next()
 
+    def compile_model(self):
         self.model.compile(optimizer=keras.optimizers.Adam(
             lr=self.learning_rate, 
             decay=self.learning_rate_decay),
@@ -43,40 +50,46 @@ class Model:
         # restore weights from checkpoint if there is one
         try:
             self.model.load_weights(self.checkpoint_dir)
+            print('loaded')
         except OSError:
             pass
 
-        self.checkpoint_callback = keras.callbacks.ModelCheckpoint(self.checkpoint_dir, 
+        # load the epoch, when training was stopped
+        try:
+            self.initial_epoch = joblib.load(self.epoch_dir)
+        except OSError:
+            self.initial_epoch = 0
+
+    def build_callbacks(self):
+        checkpoint_callback = keras.callbacks.ModelCheckpoint(self.checkpoint_dir, 
                                                 save_weights_only=False,
-                                                verbose=0,
-                                                period=10)
-        self.tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.log_dir,
-                                                update_freq=10)
+                                                verbose=0)
+        tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.log_dir,
+                                                update_freq=1)
+        learning_rate_callback = keras.callbacks.ReduceLROnPlateau(monitor='loss' ,factor=0.5, patience=3, min_delta=0.001, verbose=1)
 
-    def get_session(self):
-        if self.session == None:
-            self.session = tf.Session()
-        return self.session
+        def save_epoch(epoch, logs):
+            joblib.dump(epoch, self.epoch_dir)
+            self.initial_epoch = epoch
+        save_epoch_callback = keras.callbacks.LambdaCallback(on_epoch_begin=save_epoch)
 
-    def get_iterator(self):
-        if self.iterator == None:
-            self.iterator = InputProvider.inputs().make_one_shot_iterator()
-        return self.iterator
+        self.callbacks = [
+            checkpoint_callback,
+            tensorboard_callback,
+            learning_rate_callback,
+            save_epoch_callback
+        ]
 
     def train(self):
-        sess = self.get_session()
-        next_element = self.get_iterator().get_next()
-
-        for _ in range(self.num_iterations):
-            bw, labels = sess.run(next_element)
-            self.model.fit(x=bw, y=labels,
+        self.model.fit(x=self.inputs,
+                    initial_epoch=self.initial_epoch,
+                    steps_per_epoch=self.steps_per_epoch,
                     epochs=self.num_epochs,
-                    callbacks=[self.checkpoint_callback, self.tensorboard_callback])
+                    callbacks=self.callbacks)
 
     def predict(self):
-        sess = self.get_session()
-        bws, _ = sess.run(self.get_iterator().get_next())
-        
+        with tf.Session() as sess:
+            bws, _ = sess.run(self.iterator)
         labels = self.model.predict(bws)
         for bw, label in zip(bws, labels):
             ColorEncoder().decode_and_show(label, bw)

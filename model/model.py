@@ -6,13 +6,14 @@ from tensorflow import keras
 from.color_mapping import ColorEncoder
 
 class UNetBuilder:
-    def __init__(self, output_dimensions, 
+    def __init__(self, input_shape, output_dimensions,
                     initial_num_filters=64, 
                     num_poolings=4, 
                     kernel_size=3,
                     dropout_rate=0.2,
                     batch_normalization=True):
         self.output_dimensions = output_dimensions
+        self.input_shape = input_shape
         self.initial_num_filters = initial_num_filters
         self.num_poolings = num_poolings
         self.kernel_size = kernel_size
@@ -83,7 +84,7 @@ class UNetBuilder:
         """
         builds the core of the u-net model with the downsampling and upsampling stages
         """
-        self.inputs = keras.Input(shape=(256, 256, 1), name='bw-img')
+        self.inputs = keras.Input(shape=self.input_shape, name='bw-img')
         num_filters = self.initial_num_filters
         x = self.inputs
         
@@ -114,12 +115,16 @@ class UNetBuilder:
             }
         self.outputs = x
 
+    def calculate_output_shape(self):
+        self.output_shape = tuple([d.value for d in self.outputs.shape[1:]])
+
     def add_output_layer(self):
         """
         adds an output layer to the outputs of the model so far. The new outputs will have the specified
         number of output dimensions.
         """
         self.outputs = self.conv2d_layer(self.outputs, num_filters=self.output_dimensions)
+        self.calculate_output_shape()
 
     def instanciate_model(self):
         return keras.Model(inputs=self.inputs, outputs=self.outputs, name=self.model_name)
@@ -130,13 +135,15 @@ class UNetBuilder:
         return self.instanciate_model()
 
 class ColorNetBuilder(UNetBuilder):
-    def __init__(self, output_dimensions=ColorEncoder.vec_size,
+    def __init__(self, input_shape, 
+                    output_dimensions=ColorEncoder.vec_size,
                     initial_num_filters=64, 
                     num_poolings=4, 
                     kernel_size=3,
                     dropout_rate=0.4,
                     batch_normalization=True):
         super(ColorNetBuilder, self).__init__(
+            input_shape=input_shape,
             output_dimensions=output_dimensions,
             initial_num_filters=initial_num_filters, 
             num_poolings=num_poolings, 
@@ -147,3 +154,4 @@ class ColorNetBuilder(UNetBuilder):
 
     def add_output_layer(self):
         self.outputs = self.conv2d_layer(self.up[1]['output'], num_filters=self.output_dimensions, activation='softmax')
+        self.calculate_output_shape()
