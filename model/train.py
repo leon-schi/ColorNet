@@ -69,8 +69,8 @@ class Model:
         learning_rate_callback = keras.callbacks.ReduceLROnPlateau(monitor='loss' ,factor=0.5, patience=3, min_delta=0.001, verbose=1)
 
         def save_epoch(epoch, logs):
-            joblib.dump(epoch, self.epoch_dir)
-            self.initial_epoch = epoch
+            joblib.dump(epoch + 1, self.epoch_dir)
+            self.initial_epoch = epoch + 1
         save_epoch_callback = keras.callbacks.LambdaCallback(on_epoch_begin=save_epoch)
 
         self.callbacks = [
