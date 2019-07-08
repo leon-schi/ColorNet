@@ -83,6 +83,7 @@ class InputProvider:
         dataset = dataset.map(map_func=self.parse, num_parallel_calls=self.config['num_parallel_map_calls'])
         dataset = dataset.repeat()
         dataset = dataset.batch(batch_size=self.config['batch_size'])
+        dataset = dataset.prefetch(buffer_size=1)
         return dataset
 
     def inputs_pipeline(self):

@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 import tensorflow as tf
 import joblib
@@ -11,7 +12,8 @@ from .model import ColorNetBuilder
 from .color_mapping import ColorEncoder
 
 class Model:
-    checkpoint_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints/cp.h5')
+    checkpoint_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints')
+    checkpoint_dir = os.path.join(checkpoint_folder, 'cp.{epoch}.h5')
     epoch_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints/epoch')
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
@@ -46,22 +48,29 @@ class Model:
         try:
             loaded = joblib.load(self.epoch_dir)
             self.initial_epoch = loaded['epoch']
-            self.learning_rate = loaded['lr']
+            learning_rate = loaded['lr']
         except OSError:
             self.initial_epoch = 0
+            learning_rate = self.learning_rate
+
+        print('training will start at epoch {} with learning rate {}'.format(self.initial_epoch, learning_rate))
 
         self.model.compile(optimizer=keras.optimizers.Adam(
-            lr=self.learning_rate, 
+            lr=learning_rate,
             decay=self.learning_rate_decay),
-              loss='categorical_crossentropy',
-              metrics=['categorical_crossentropy'])
+            loss='categorical_crossentropy',
+            metrics=['categorical_crossentropy'])
 
         # restore weights from checkpoint if there is one
         try:
-            self.model.load_weights(self.checkpoint_dir)
-            print('loaded')
+            checkpoint_file = sorted([f for f in os.listdir(self.checkpoint_folder) if re.match('cp.*.h5', f)])[-1]
+            self.model.load_weights(os.path.join(self.checkpoint_folder, checkpoint_file))
+            print('loaded weights from file: {}'.format(checkpoint_file))
         except OSError:
             pass
+
+    def save(self):
+        self.model.save(os.path.join(self.checkpoint_folder, 'saved.h5'))
 
     def build_callbacks(self):
         checkpoint_callback = keras.callbacks.ModelCheckpoint(self.checkpoint_dir, 
@@ -69,7 +78,10 @@ class Model:
                                                 verbose=0)
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.log_dir,
                                                 update_freq=1)
-        learning_rate_callback = keras.callbacks.ReduceLROnPlateau(monitor='loss' ,factor=0.5, patience=3, min_delta=0.001, verbose=1)
+        learning_rate_plateau = keras.callbacks.ReduceLROnPlateau(monitor='loss' ,factor=0.5, patience=3, min_delta=0.001, verbose=1)
+        learning_rate_scheduler = keras.callbacks.LearningRateScheduler(
+            schedule=lambda epoch, lr: lr * (1 - self.learning_rate_decay),
+            verbose=1)
 
         def save_epoch(epoch, logs):
             joblib.dump({
@@ -82,7 +94,8 @@ class Model:
         self.callbacks = [
             checkpoint_callback,
             tensorboard_callback,
-            learning_rate_callback,
+            learning_rate_scheduler,
+            learning_rate_plateau,
             save_epoch_callback
         ]
 
