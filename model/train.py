@@ -34,12 +34,17 @@ class Model:
     def build_model(self):
         model_architecture = CONFIG['model_architecture']
         builder = ColorNetBuilder(
-            input_shape=model_architecture['input_shape'],
+            input_shape=(None, None, 1),#model_architecture['input_shape'],
             initial_num_filters=model_architecture['num_filters'],
             num_poolings=model_architecture['num_poolings'],
         )
         self.model = builder.build_model()
-        self.input_provider = InputProvider(CONFIG['input_config'], builder.input_shape, builder.output_shape)
+
+        input_shape = model_architecture['input_shape']
+        output_shape = builder.calculate_output_shape(input_shape)
+        print(input_shape, output_shape)
+        self.input_provider = InputProvider(CONFIG['input_config'], input_shape, output_shape)
+        #self.input_provider = InputProvider(CONFIG['input_config'], builder.input_shape, builder.output_shape)
         self.inputs = self.input_provider.inputs()
         self.iterator = self.inputs.make_one_shot_iterator().get_next()
 

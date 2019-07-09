@@ -115,16 +115,12 @@ class UNetBuilder:
             }
         self.outputs = x
 
-    def calculate_output_shape(self):
-        self.output_shape = tuple([d.value for d in self.outputs.shape[1:]])
-
     def add_output_layer(self):
         """
         adds an output layer to the outputs of the model so far. The new outputs will have the specified
         number of output dimensions.
         """
         self.outputs = self.conv2d_layer(self.outputs, num_filters=self.output_dimensions)
-        self.calculate_output_shape()
 
     def instanciate_model(self):
         return keras.Model(inputs=self.inputs, outputs=self.outputs, name=self.model_name)
@@ -152,6 +148,10 @@ class ColorNetBuilder(UNetBuilder):
             batch_normalization=batch_normalization
         )
 
+    def calculate_output_shape(self, input_shape):
+        assert input_shape[0] % 2 == 0
+        assert input_shape[1] % 2 == 0
+        return (int(input_shape[0]/2), int(input_shape[1]/2), self.outputs.shape[-1].value)
+
     def add_output_layer(self):
         self.outputs = self.conv2d_layer(self.up[1]['output'], num_filters=self.output_dimensions, activation='softmax')
-        self.calculate_output_shape()

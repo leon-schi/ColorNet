@@ -21,8 +21,7 @@ class ColorEncoder:
     b = np.linspace(0, 1, num=GRID_SIZE[1], endpoint=False) + 1/(2*GRID_SIZE[1])
     ab_lookup = np.transpose([np.tile(a, len(b)), np.repeat(b, len(a))])
 
-    input_size = 256
-    output_size = 128
+    in_out_ratio = 2 # the width and height of the output image will be half of the input width/height
     vec_size = len(ab_lookup)
 
     nbrs = NearestNeighbors(n_neighbors=5, metric='euclidean').fit(ab_lookup)
@@ -31,16 +30,16 @@ class ColorEncoder:
         self.dtype = dtype
 
     def encode_sparse(self, color_channels):
-        assert self.input_size == len(color_channels[0])
         # sample down to output size
-        a = zoom(color_channels[0], self.output_size/self.input_size)
-        b = zoom(color_channels[1], self.output_size/self.input_size)
+        a = zoom(color_channels[0], 1/self.in_out_ratio)
+        b = zoom(color_channels[1], 1/self.in_out_ratio)
         color_channels = np.array([a, b])
 
-        dense_shape = (self.output_size, self.output_size, self.vec_size)
+        height, width = a.shape[0], a.shape[1]
+        dense_shape = (height, width, self.vec_size)
         indices, values = [], []
-        for y in range(self.output_size):
-            for x in range(self.output_size):
+        for y in range(height):
+            for x in range(width):
                 # get actual a,b values
                 ab = np.array([[color_channels[0][y, x], color_channels[1][y, x]]])
                 # find the 5 closest a,b values from the grid
@@ -64,11 +63,12 @@ class ColorEncoder:
         return tf.sparse_tensor_to_dense(sparse_labels).numpy()
 
     def decode(self, labels):
-        assert labels.shape == (self.output_size, self.output_size, self.vec_size)
+        assert labels.shape[-1] == self.vec_size
+        height, width = labels.shape[0], labels.shape[1]
 
-        a, b = np.zeros((self.output_size, self.output_size)), np.zeros((self.output_size, self.output_size))
-        for y in range(self.output_size):
-            for x in range(self.output_size):
+        a, b = np.zeros((height, width)), np.zeros((height, width))
+        for y in range(height):
+            for x in range(width):
                 # use the a, b value with the highest probability
                 index = np.argmax(labels[x, y])
                 value = self.ab_lookup[index]
@@ -76,17 +76,19 @@ class ColorEncoder:
                 b[x, y] = value[1]
 
         # upsampling
-        a = zoom(a, self.input_size/self.output_size)
-        b = zoom(b, self.input_size/self.output_size)
+        a = zoom(a, self.in_out_ratio)
+        b = zoom(b, self.in_out_ratio)
         color_channels = np.array([a, b])
         return color_channels
 
     def decode_and_show(self, labels, black_white):
         from PIL import Image
         import matplotlib.pyplot as plt
+        assert labels.shape[0] * self.in_out_ratio == black_white.shape[0]
+        assert labels.shape[1] * self.in_out_ratio == black_white.shape[1]
 
         color_channels = self.decode(labels)
-        black_white = black_white.reshape((self.input_size, self.input_size))
+        black_white = black_white.reshape(black_white.shape[:-1])
         img = 255*np.array([black_white, color_channels[0], color_channels[1]]).T
         img = img.astype(np.uint8)
 
