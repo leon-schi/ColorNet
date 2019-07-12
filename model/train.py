@@ -71,7 +71,7 @@ class Model:
             checkpoint_file = sorted([f for f in os.listdir(self.checkpoint_folder) if re.match('cp.*.h5', f)])[-1]
             self.model.load_weights(os.path.join(self.checkpoint_folder, checkpoint_file))
             print('loaded weights from file: {}'.format(checkpoint_file))
-        except OSError:
+        except (OSError, IndexError) as e:
             pass
 
     def save(self):
@@ -83,7 +83,7 @@ class Model:
                                                 verbose=0)
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.log_dir,
                                                 update_freq=1)
-        learning_rate_plateau = keras.callbacks.ReduceLROnPlateau(monitor='loss' ,factor=0.5, patience=3, min_delta=0.001, verbose=1)
+        learning_rate_plateau = keras.callbacks.ReduceLROnPlateau(monitor='loss' ,factor=0.5, patience=20, min_delta=0.001, verbose=1)
         learning_rate_scheduler = keras.callbacks.LearningRateScheduler(
             schedule=lambda epoch, lr: lr * (1 - self.learning_rate_decay),
             verbose=1)
