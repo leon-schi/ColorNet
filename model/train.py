@@ -13,7 +13,7 @@ from .color_mapping import ColorEncoder
 
 class Model:
     checkpoint_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints')
-    checkpoint_dir = os.path.join(checkpoint_folder, 'cp.{epoch}.h5')
+    checkpoint_dir = os.path.join(checkpoint_folder, 'cp.h5')
     epoch_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints/epoch')
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S"))
 
@@ -83,7 +83,7 @@ class Model:
                                                 verbose=0)
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.log_dir,
                                                 update_freq=1)
-        learning_rate_plateau = keras.callbacks.ReduceLROnPlateau(monitor='loss' ,factor=0.5, patience=20, min_delta=0.001, verbose=1)
+        learning_rate_plateau = keras.callbacks.ReduceLROnPlateau(monitor='loss' ,factor=0.2, patience=20, min_delta=0.001, verbose=1)
         learning_rate_scheduler = keras.callbacks.LearningRateScheduler(
             schedule=lambda epoch, lr: lr * (1 - self.learning_rate_decay),
             verbose=1)
@@ -99,7 +99,7 @@ class Model:
         self.callbacks = [
             checkpoint_callback,
             tensorboard_callback,
-            learning_rate_scheduler,
+            #learning_rate_scheduler,
             learning_rate_plateau,
             save_epoch_callback
         ]
