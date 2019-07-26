@@ -8,7 +8,7 @@ from tensorflow import keras
 
 from .config import CONFIG
 from .input import InputProvider
-from .model import ColorNetBuilder
+from .model_new import ColorNetBuilder
 from .color_mapping import ColorEncoder
 
 class Model:

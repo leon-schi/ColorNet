@@ -22,7 +22,7 @@ class UNetBuilder:
 
         self.activation = 'relu'
         self.padding = 'same'
-        self.kernel_initializer = 'he_normal'
+        self.kernel_initializer = 'glorot_uniform'
 
         self.model_name = 'u-net'
 
