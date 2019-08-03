@@ -33,11 +33,11 @@ class ColorNetBuilder:
         activation = self.activation if (activation == None) else activation
         strides = (1, 1) if (strides == None) else strides
 
-        return keras.layers.Conv2D(num_filters, kernel_size, 
-                                    activation=activation, 
+        x = keras.layers.Conv2D(num_filters, kernel_size, 
                                     padding=self.padding, 
                                     kernel_initializer=self.kernel_initializer, 
                                     strides=strides)(inputs)
+        return keras.layers.LeakyReLU(alpha=0.02)(x)
 
     def build_downsampling_block(self, inputs, num_filters, stride=1):
         """
@@ -46,7 +46,6 @@ class ColorNetBuilder:
         The result before pooling is also returned, to pass it on to the upsampling phase
         """
         x = self.conv2d_layer(inputs, num_filters=num_filters)
-        x = self.conv2d_layer(x, num_filters=num_filters)
         x = self.conv2d_layer(x, num_filters=num_filters, strides=(stride, stride))
         x = keras.layers.Dropout(rate=self.dropout_rate)(x)
         return keras.layers.BatchNormalization()(x) if (self.batch_normalization) else x
@@ -65,7 +64,11 @@ class ColorNetBuilder:
 
     def build_output_block(self, inputs, num_filters):
         x = self.conv2d_layer(inputs, num_filters=num_filters)
-        return self.conv2d_layer(x, num_filters=self.output_dimensions, activation='softmax')
+        return keras.layers.Conv2D(self.output_dimensions, self.kernel_size,
+                                    activation='softmax', 
+                                    padding=self.padding, 
+                                    kernel_initializer=self.kernel_initializer, 
+                                    strides=(1,1))(x)
 
     def build_model_core(self):
         """
