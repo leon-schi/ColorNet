@@ -81,6 +81,15 @@ class ColorEncoder:
         color_channels = np.array([a, b])
         return color_channels
 
+    def decode_to_final_image(self, labels, black_white):
+        assert labels.shape[0] * self.in_out_ratio == black_white.shape[0]
+        assert labels.shape[1] * self.in_out_ratio == black_white.shape[1]
+
+        color_channels = self.decode(labels)
+        black_white = black_white.reshape(black_white.shape[:-1])
+        img = 255*np.array([black_white, color_channels[0], color_channels[1]]).T
+        return img.astype(np.uint8)
+
     def decode_and_show(self, labels, black_white):
         from PIL import Image
         import matplotlib.pyplot as plt

@@ -11,7 +11,7 @@ def read_int64(example, feature):
     return example.features.feature[feature].int64_list.value[0]
 
 if __name__ == "__main__":
-    data = tf.data.TFRecordDataset('imagenet-records/records-0')
+    data = tf.data.TFRecordDataset('imagenet-records/records-2')
     iterator = data.make_one_shot_iterator()
     next_element = iterator.get_next()
 

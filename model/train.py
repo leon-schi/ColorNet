@@ -42,9 +42,7 @@ class Model:
 
         input_shape = model_architecture['input_shape']
         output_shape = builder.calculate_output_shape(input_shape)
-        print(input_shape, output_shape)
         self.input_provider = InputProvider(CONFIG['input_config'], input_shape, output_shape)
-        #self.input_provider = InputProvider(CONFIG['input_config'], builder.input_shape, builder.output_shape)
         self.inputs = self.input_provider.inputs()
         self.iterator = self.inputs.make_one_shot_iterator().get_next()
 
@@ -116,7 +114,20 @@ class Model:
             self.sess = tf.Session()
         return self.sess
 
-    def predict(self):
+    def predict(self, x):
+        return self.model.predict(x)
+
+    def predict_records(self):
+        sess = self.get_session()
+        bws, _ = sess.run(self.iterator)
+        labels = self.model.predict(bws)
+        encoder = ColorEncoder()
+        results = []
+        for bw, label in zip(bws, labels):
+            results.append(encoder.decode_to_final_image(label, bw))
+        return results
+
+    def predict_records_and_show(self):
         sess = self.get_session()
         bws, _ = sess.run(self.iterator)
         labels = self.model.predict(bws)
