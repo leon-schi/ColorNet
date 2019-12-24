@@ -4,7 +4,7 @@ A convolutional neural network for colorizing black white pictures inspired by: 
 
 The net consists of 8 subsequent convolutional blocks, each consisting of 2 convolutional layers using leaky ReLU, one Dropout Layer and one Batch Normalization Layer. There are approx. 12,8 Millon trainable parameters.
 
-There are 5 downsampling blocks, the first of them are bisecting the widht and height of the image by using a stride of 2 in the last convolutional layer. At the same time, the number of filters in increased each time. The last 2 blocks are upsampling blocks that double the size of the inputs while at the same time reducing the number of filters (see [model.png]() for the exact architecture).
+There are 5 downsampling blocks, the first of them are bisecting the widht and height of the image by using a stride of 2 in the last convolutional layer. At the same time, the number of filters in increased each time. The last 2 blocks are upsampling blocks that double the size of the inputs while at the same time reducing the number of filters (see [model.png](model.png) for the exact architecture).
 
 ## How to use
 
