@@ -8,7 +8,7 @@ There are 5 downsampling blocks, the first of them are bisecting the widht and h
 
 ## How to use
 
-The trained version of the network can be downloaded here: ...
+The trained version of the network can be downloaded [here](https://drive.google.com/file/d/12Mu55od-CUZN0IiUZPSIyMs8wolytqGv/view?usp=sharing).
 
 Because of limited hardware resources (no GPUs), the model has been trained on only 1024 images from the ImageNet Dataset. Traing was executed on a Google Compute Engine VM for approx. 3 days. (approx 150.000 epochs). It does not generalize very well on images it has never seen before.
 
