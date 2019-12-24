@@ -1,6 +1,6 @@
 # ColorNet
 
-A convolutional neural network for colorizing black white pictures inspired by: [https://arxiv.org/abs/1603.08511](). This implementation is based on Keras and Tensorflow.
+A convolutional neural network for colorizing black white pictures inspired by: [https://arxiv.org/abs/1603.08511](https://arxiv.org/abs/1603.08511). This implementation is based on Keras and Tensorflow.
 
 The net consists of 8 subsequent convolutional blocks, each consisting of 2 convolutional layers using leaky ReLU, one Dropout Layer and one Batch Normalization Layer. There are approx. 12,8 Millon trainable parameters.
 
